@@ -8,6 +8,7 @@ class StrikerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         self._striked = False
         self._min_strike_dist = np.inf
         self.strike_threshold = 0.1
+        self.distance_threshold = 0.01
         mujoco_env.MujocoEnv.__init__(self, 'striker.xml', 5)
 
     def step(self, a):
@@ -27,7 +28,10 @@ class StrikerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
         reward_dist = - np.linalg.norm(self._min_strike_dist)
         reward_ctrl = - np.square(a).sum()
-        reward = 3 * reward_dist + 0.1 * reward_ctrl + 0.5 * reward_near
+        #reward = 3 * reward_dist + 0.1 * reward_ctrl + 0.5 * reward_near
+
+        d = np.linalg.norm(self._min_strike_dist)
+        reward = -(d > self.distance_threshold).astype(np.float32)
 
         self.do_simulation(a, self.frame_skip)
         ob = self._get_obs()
