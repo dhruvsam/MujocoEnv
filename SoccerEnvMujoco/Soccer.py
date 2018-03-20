@@ -2,14 +2,13 @@ import numpy as np
 from gym import utils
 from gym.envs.mujoco import mujoco_env
 
-class StrikerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
+class SoccerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self):
         utils.EzPickle.__init__(self)
         self._striked = False
         self._min_strike_dist = np.inf
         self.strike_threshold = 0.1
-        self.distance_threshold = 0.01
-        mujoco_env.MujocoEnv.__init__(self, 'striker.xml', 5)
+        mujoco_env.MujocoEnv.__init__(self, 'Soccer.xml', 5)
 
     def step(self, a):
         vec_1 = self.get_body_com("object") - self.get_body_com("tips_foot")
@@ -28,10 +27,7 @@ class StrikerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
         reward_dist = - np.linalg.norm(self._min_strike_dist)
         reward_ctrl = - np.square(a).sum()
-        #reward = 3 * reward_dist + 0.1 * reward_ctrl + 0.5 * reward_near
-
-        d = np.linalg.norm(self._min_strike_dist)
-        reward = -(d > self.distance_threshold).astype(np.float32)
+        reward = 3 * reward_dist + 0.1 * reward_ctrl + 0.5 * reward_near
 
         self.do_simulation(a, self.frame_skip)
         ob = self._get_obs()
@@ -50,11 +46,11 @@ class StrikerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
         qpos = self.init_qpos
 
-        self.ball = np.array([0, -0.45])
+        self.ball = np.array([0.0, 0.16])
         while True:
             self.goal = np.concatenate([
-                    self.np_random.uniform(low=0.15, high=0.7, size=1),
-                    self.np_random.uniform(low=0.1, high=1.0, size=1)])
+                    self.np_random.uniform(low=-0.8, high=0.8, size=1),
+                    self.np_random.uniform(low=0.5, high=1.5, size=1)])
             if np.linalg.norm(self.ball - self.goal) > 0.17:
                 break
 
@@ -65,14 +61,14 @@ class StrikerEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         qpos[-1] = angle / 3.14
         qvel = self.init_qvel + self.np_random.uniform(low=-.1, high=.1,
                 size=self.model.nv)
-        qvel[7:] = 0
+        qvel[6:] = 0
         self.set_state(qpos, qvel)
         return self._get_obs()
 
     def _get_obs(self):
         return np.concatenate([
-            self.sim.data.qpos.flat[:7],
-            self.sim.data.qvel.flat[:7],
+            self.sim.data.qpos.flat[:6],
+            self.sim.data.qvel.flat[:6],
             self.get_body_com("tips_foot"),
             self.get_body_com("object"),
             self.get_body_com("goal"),
